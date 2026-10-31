@@ -35,7 +35,8 @@ Local development uses Miniflare-backed D1 and R2 persisted under `.wrangler/sta
 2. The video repository reads published D1 rows and distinct play sessions.
 3. Selecting an uploaded video requests `/api/videos/:id/stream`.
 4. The video repository resolves the R2 object key from D1.
-5. The storage module returns the R2 object body to the browser.
+5. The stream route reads R2 metadata and supports HEAD plus bounded, open-ended, and suffix byte ranges. Ranged GETs read only the requested bytes from R2 and return 206 with Content-Range; unsatisfiable ranges return 416.
+6. Video responses use private, no-store caching so uploaded content is not stored in shared caches while the site is owner-only.
 
 ### Upload publication
 

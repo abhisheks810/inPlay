@@ -24,8 +24,15 @@ export async function putVideoObject(
   await getBucket().put(objectKey, body, { httpMetadata: { contentType } });
 }
 
-export async function getVideoObject(objectKey: string): Promise<R2ObjectBody | null> {
-  return getBucket().get(objectKey);
+export async function headVideoObject(objectKey: string): Promise<R2Object | null> {
+  return getBucket().head(objectKey);
+}
+
+export async function getVideoObject(
+  objectKey: string,
+  range?: { offset: number; length: number },
+): Promise<R2ObjectBody | null> {
+  return getBucket().get(objectKey, range ? { range } : undefined);
 }
 
 export async function deleteVideoObject(objectKey: string): Promise<void> {
