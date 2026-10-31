@@ -1,4 +1,4 @@
-import { getChatGPTUser } from "@/app/chatgpt-auth";
+import { getCurrentUser } from "@/app/auth";
 import {
   buildVideoObjectKey,
   deleteVideoObject,
@@ -24,9 +24,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await getChatGPTUser();
+  const user = await getCurrentUser();
   if (!user) {
-    return Response.json({ error: "Sign in with ChatGPT to upload videos." }, { status: 401 });
+    return Response.json({ error: "Sign in with a verified account to upload videos." }, { status: 401 });
   }
 
   const url = new URL(request.url);

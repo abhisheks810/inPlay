@@ -12,6 +12,7 @@ Streamline is a modular monolith: a single Vinext/Cloudflare Worker deployment w
 | `modules/videos/` | Video types, validation helpers, metadata reads/writes | D1 through `db/` |
 | `modules/storage/` | Object-key construction and uploaded-byte operations | R2 `BUCKET` |
 | `modules/engagement/` | Event contract, client capture, event writes, aggregate metrics | D1 through `db/` |
+| `modules/identity/` | Federated provider adapters, identity linking, OAuth state, and sessions | D1 plus provider OIDC endpoints |
 | `db/` | Cloudflare binding access and Drizzle schema | D1 `DB` |
 | `drizzle/` | Immutable schema migrations | Applied locally and by Sites |
 
@@ -38,7 +39,7 @@ Local development uses Miniflare-backed D1 and R2 persisted under `.wrangler/sta
 
 ### Upload publication
 
-1. The route requires ChatGPT identity headers.
+1. The route requires either hosted ChatGPT identity headers or a valid federated session.
 2. The route validates title, content type, and the 250 MB limit.
 3. The storage module writes bytes to R2.
 4. The video repository inserts the published D1 metadata row.
@@ -51,10 +52,22 @@ Local development uses Miniflare-backed D1 and R2 persisted under `.wrangler/sta
 3. The engagement repository writes an append-only D1 event with optional signed-in user ID but no email.
 4. Aggregates calculate distinct play sessions and maximum watched seconds per session.
 
+### Federated identity verification
+
+1. `/api/auth/:provider/start` creates a ten-minute, one-time OAuth transaction in D1 with a hashed state token, nonce, optional PKCE verifier, and safe local return path.
+2. The browser is redirected to Apple, Google, or the configured Zoho data-center authorization endpoint.
+3. `/api/auth/:provider/callback` consumes the transaction before exchanging the authorization code.
+4. The identity module validates the provider's signed ID token, issuer, audience, and nonce against provider JWKS.
+5. The provider subject is linked to an internal `users` row through `external_identities`; email is descriptive and is never the identity key.
+6. A random session token is returned in an HTTP-only cookie while only its SHA-256 hash and expiry are stored in D1.
+
+The existing Sites-managed ChatGPT authentication remains a trusted platform adapter and takes precedence when its identity headers are present. External provider callbacks intentionally use `/api/auth/.../callback`; the platform-reserved `/callback` route is not reused.
+
 ## Launch constraints
 
 - The first release remains one deployable Worker; no distributed service boundary is introduced.
 - Local and hosted storage are intentionally separate.
 - Production migration history is append-only.
 - Engagement events need a retention decision before long-term production operation.
+- Provider credentials must be stored as runtime secrets, and every production callback URL must be registered before the matching sign-in option becomes active.
 - Content moderation, abuse reporting, and upload rate limits remain launch-readiness work.

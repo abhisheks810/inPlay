@@ -1,4 +1,4 @@
-import { getChatGPTUser } from "@/app/chatgpt-auth";
+import { getCurrentUser } from "@/app/auth";
 import { getEngagementMetrics, recordEngagementEvent } from "@/modules/engagement/repository";
 import { parseEngagementEvent } from "@/modules/engagement/types";
 
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   if (!event) return Response.json({ error: "Invalid engagement event." }, { status: 400 });
 
   try {
-    const user = await getChatGPTUser();
+    const user = await getCurrentUser();
     await recordEngagementEvent(event, user?.userId ?? null);
     return new Response(null, { status: 204 });
   } catch (error) {
